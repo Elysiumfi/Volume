@@ -59,7 +59,7 @@ contract main {
         uint256[] memory amounts = new uint256[](1);
 
         tokens[0] = token1;
-        amounts[0] = 100_000 ether;
+        amounts[0] = 100_001 ether;
 
         IBalancerVault(vault).flashLoan(
             IFlashLoanRecipient(address(this)),

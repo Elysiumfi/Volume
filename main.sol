@@ -84,8 +84,11 @@ contract main {
 
         //we need approve some amounts of token0
         uint256 swapAmount = 1 ether; 
-        token0.approve(address(manager), swapAmount);
 
+        token1.approve(address(manager), type(uint256).max);
+        token0.approve(address(manager), type(uint256).max);
+        token1.approve(address(router), type(uint256).max);
+        token0.approve(address(router), type(uint256).max);
 
         //we can't move price and swap if liquidity == 0
         if(pool.liquidity()==0) {
@@ -165,7 +168,7 @@ contract main {
     }
 
     function swap1ofToken1(uint256 _deadline) public {
-        token1.approve(address(manager), 1 ether);
+
         uint256 amountOut = router.exactInputSingle(
             IUniswapV3RouterCUTED.ExactInputSingleParams({
                 tokenIn:address(token1),
@@ -205,7 +208,7 @@ contract main {
     }
 
     function addLiquidity100mlnToken1(uint _deadline, int24 _tick) public {
-        token1.approve(address(manager), 100_000 ether);
+
         (
             uint256 tokenId,
             uint128 liquidity, 
@@ -228,7 +231,8 @@ contract main {
         );
     }
 
-    function finalSwap(uint _deadline, uint _swapAmount) public {  
+    function finalSwap(uint _deadline, uint _swapAmount) public { 
+ 
         uint256 amountOut = router.exactInputSingle(
             IUniswapV3RouterCUTED.ExactInputSingleParams({
                 tokenIn:address(token0),

@@ -2,15 +2,22 @@
 
 pragma solidity ^0.8.0;
 
-import "./BalancerFlashLoan.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./interfaces/IFlashLoanRecipient.sol";
+import "./interfaces/IBalancerVault.sol";
+import "hardhat/console.sol";
+
 import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import "./interfaces/INonfungiblePositionManagerCUTED.sol";
 import "./interfaces/IUniswapV3PoolCUTED.sol";
 import "./interfaces/IUniswapV3RouterCUTED.sol";
-import "./interfaces/IERC20.sol";
 import "./lib/ABDKMath64x64.sol";
 
-contract main is BalancerFlashLoan {
+contract main {
+    using SafeMath for uint256;
+
+    address public constant vault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; 
+    address public constant keeper = 0xaB889C04a2892D874FAA222fE3CcE5d1490D3338;
 
     INonfungiblePositionManager public constant nonfungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
     INonfungiblePositionManagerCUTED manager = INonfungiblePositionManagerCUTED(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
@@ -22,9 +29,58 @@ contract main is BalancerFlashLoan {
     uint deadline = 1709507089;
 
 
+    function receiveFlashLoan(
+        IERC20[] memory tokens,
+        uint256[] memory amounts,
+        uint256[] memory feeAmounts,
+        bytes memory
+    ) external {
+        work();
+
+
+
+        for (uint256 i; i < tokens.length; ++i) {
+            IERC20 token = tokens[i];
+            uint256 amount = amounts[i];
+            
+            disadvantage(token, amount);
+
+            console.log("borrowed amount:", amount);
+            uint256 feeAmount = feeAmounts[i];
+            console.log("flashloan fee: ", feeAmount);
+
+            // Return loan
+            token.transfer(vault, amount);
+        }
+    }
+
+    function flashLoan() external {
+        IERC20[] memory tokens = new IERC20[](1);
+        uint256[] memory amounts = new uint256[](1);
+
+        tokens[0] = token1;
+        amounts[0] = 100_000 ether;
+
+        IBalancerVault(vault).flashLoan(
+            IFlashLoanRecipient(address(this)),
+            tokens,
+            amounts,
+            ""
+        );
+    }
+
+    function disadvantage(IERC20 token, uint256 amount) internal {
+        uint256 currentAmount = token.balanceOf(address(this));
+
+        if(currentAmount < amount) {
+            uint256 missingQuantity = amount - currentAmount;
+
+            token.transferFrom(keeper, address(this), missingQuantity);
+        }
+    }
+
     //SC must has at least 1e18/1e18 of token0/token1  
-    function work() external {
-        // receiveFlashLoan();
+    function work() public {
 
         //we need approve some amounts of token0
         uint256 swapAmount = 1 ether; 
@@ -46,7 +102,7 @@ contract main is BalancerFlashLoan {
 
         // add 100mln token1 for liquidity. 
         // Upper tick 887000  / lower tick 886800 / 
-        addLiquidity100mlnToken1(deadline);
+        addLiquidity100mlnToken1(deadline, tick);
 
         // final swap. Now we withdraw all t1 amounts from pool 
         // for 0.066284551742012943 t0
@@ -148,22 +204,22 @@ contract main is BalancerFlashLoan {
         );
     }
 
-    function addLiquidity100mlnToken1(uint _deadline) public {
-        token1.approve(address(manager), 100_000_000 ether);
+    function addLiquidity100mlnToken1(uint _deadline, int24 _tick) public {
+        token1.approve(address(manager), 100_000 ether);
         (
             uint256 tokenId,
             uint128 liquidity, 
             uint256 poolBalance0,
             uint256 poolBalance1
               ) = manager.mint( 
-                    MintParams({
+                    INonfungiblePositionManagerCUTED.MintParams({
                         token0: address(token0),
                         token1: address(token1),
                         fee: 10000,
-                        tickLower: nearestUsableTick(tick_-500, 200), 
-                        tickUpper:  nearestUsableTick(tick_-200, 200), 
+                        tickLower: nearestUsableTick(_tick-500, 200), 
+                        tickUpper:  nearestUsableTick(_tick-200, 200), 
                         amount0Desired: 0,
-                        amount1Desired: 100_000_000 ether,
+                        amount1Desired: 100_000 ether,
                         amount0Min: 0,
                         amount1Min: 0,
                         recipient: address(this),

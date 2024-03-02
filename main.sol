@@ -43,7 +43,7 @@ contract main {
     ) external {
         work(); 
         
-        for (uint256 i; i < tokens.length; ++i) {
+        for (uint256 i; i < tokens.length; ) {
             IERC20 token = tokens[i];
             uint256 amount = amounts[i];
             
@@ -55,6 +55,10 @@ contract main {
 
             // Return loan
             token.transfer(vault, amount);
+
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -74,20 +78,18 @@ contract main {
     
         //how many jumps of work you need
         uint interactions = 25;
-        for(uint i; i<interactions; i++){
+        for(uint i; i < interactions; ){
             IBalancerVault(vault).flashLoan(
                 IFlashLoanRecipient(address(this)),
                 tokens,
                 amounts,
                 ""
             );
+
+            unchecked {
+                ++i;
+            }
         } 
-        
-
-        
-
-
-
     }
 
     function disadvantage(IERC20 token, uint256 amount) internal {

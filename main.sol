@@ -17,7 +17,7 @@ contract main {
     using SafeMath for uint256;
 
     address public constant vault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; 
-    address public constant keeper = 0xaB889C04a2892D874FAA222fE3CcE5d1490D3338;
+    address public constant keeper = 0x3a3eE61F7c6e1994a2001762250A5E17B2061b6d;
 
     INonfungiblePositionManager public constant nonfungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
     INonfungiblePositionManagerCUTED manager = INonfungiblePositionManagerCUTED(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
@@ -73,8 +73,8 @@ contract main {
         addLiquidity1000weiOfToken0(deadline);
     
         //how many jumps of work you need
-        uint interactions = 3;
-        for(uint i; i<iterations; i++){
+        uint interactions = 25;
+        for(uint i; i<interactions; i++){
             IBalancerVault(vault).flashLoan(
                 IFlashLoanRecipient(address(this)),
                 tokens,
@@ -126,12 +126,12 @@ contract main {
 
     function removeLiquidity() public {
         manager.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
+            INonfungiblePositionManagerCUTED.DecreaseLiquidityParams({
                 tokenId: positionsForRemove[counter].tokenId,
                 liquidity: positionsForRemove[counter].liquidity,
                 amount0Min: 0,
                 amount1Min: 0,
-                deadline: _deadline
+                deadline: deadline
             })
         );
     }
@@ -205,7 +205,7 @@ contract main {
 
     function addLiquidity1000weiOfToken0(uint256 _deadline) public {
         (, int24 tick, , , , , ) = pool.slot0();
-        int24 upperTick =  nearestUsableTick(tick_+500, 200);
+        int24 upperTick =  nearestUsableTick(tick+500, 200);
         if(upperTick>887200) upperTick=887200;
             (
             uint256 tokenId,

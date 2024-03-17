@@ -41,7 +41,7 @@ contract USDCLUSD {
         uint256[] memory feeAmounts,
         bytes memory
     ) external {
-        work(); 
+        // work(); 
         
         for (uint256 i; i < tokens.length; ) {
             IERC20 token = tokens[i];
@@ -247,7 +247,7 @@ contract USDCLUSD {
                         token0: address(token0),
                         token1: address(token1),
                         fee: 10000, 
-                        tickLower: nearestUsableTick(upperTick-400, 200),  
+                        tickLower: nearestUsableTick(upperTick-200, 200),  
                         tickUpper:  upperTick, 
                         amount0Desired: 1000,
                         amount1Desired: 0,

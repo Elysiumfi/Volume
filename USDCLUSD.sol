@@ -2,24 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 import "./interfaces/IFlashLoanRecipient.sol";
 import "./interfaces/IBalancerVault.sol";
-import "hardhat/console.sol";
 
-import '@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol';
 import "./interfaces/INonfungiblePositionManagerCUTED.sol";
 import "./interfaces/IUniswapV3PoolCUTED.sol";
 import "./interfaces/IUniswapV3RouterCUTED.sol";
 import "./lib/ABDKMath64x64.sol";
 
 contract USDCLUSD {
-    using SafeMath for uint256;
-
+   
     address public constant vault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; 
     address public constant keeper = 0x0896d73E0E978696a3ae5fe2e17ebDD8F6982729;
 
-    INonfungiblePositionManager public constant nonfungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
     INonfungiblePositionManagerCUTED manager = INonfungiblePositionManagerCUTED(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     IUniswapV3PoolCUTED pool = IUniswapV3PoolCUTED(0x53A509d1cF1de11B418e82DaC58c0648a0fdaFCA);
     IUniswapV3RouterCUTED router = IUniswapV3RouterCUTED(0xE592427A0AEce92De3Edee1F18E0157C05861564);
@@ -41,7 +37,7 @@ contract USDCLUSD {
         uint256[] memory feeAmounts,
         bytes memory
     ) external {
-        work(); 
+        // work(); 
         
         for (uint256 i; i < tokens.length; ) {
             IERC20 token = tokens[i];
@@ -49,9 +45,9 @@ contract USDCLUSD {
             
             disadvantage(token, amount);
 
-            console.log("borrowed amount:", amount);
+         
             uint256 feeAmount = feeAmounts[i];
-            console.log("flashloan fee: ", feeAmount);
+         
 
             // Return loan
             token.transfer(vault, amount);
@@ -67,7 +63,8 @@ contract USDCLUSD {
         uint256[] memory amounts = new uint256[](1);
 
         tokens[0] = token1;
-        amounts[0] = 100_001 ether;
+        amounts[0] = 100_010 * 10**6;
+        
         
         token1.approve(address(manager), type(uint256).max);
         token0.approve(address(manager), type(uint256).max);
@@ -76,8 +73,8 @@ contract USDCLUSD {
 
         addLiquidity1000weiOfToken0(deadline);
     
-        // how many jumps of work you need
-        uint interactions = 1;
+        //how many jumps of work you need
+        uint interactions = 3;
         for(uint i; i < interactions; ){
             IBalancerVault(vault).flashLoan(
                 IFlashLoanRecipient(address(this)),
@@ -97,7 +94,7 @@ contract USDCLUSD {
         uint256[] memory amounts = new uint256[](1);
 
         tokens[0] = token1;
-        amounts[0] = 100_001 ether;
+        amounts[0] = 100_010 * 10**6;
         
         token1.approve(address(manager), type(uint256).max);
         token0.approve(address(manager), type(uint256).max);
@@ -165,57 +162,7 @@ contract USDCLUSD {
             })
         );
     }
-    function removeLiquidity(uint256 tokenId) external {
 
-        /*
-            nonce   uint96 :  0
-            operator   address :  0x0000000000000000000000000000000000000000
-            token0   address :  0x1E50766fDb8Fb7D406878eAf73ACE1553cEa6713
-            token1   address :  0x2284981ec882b88F062E7a9b6E43E47Bb1f98327
-            fee   uint24 :  3000
-            tickLower   int24 :  -120
-            tickUpper   int24 :  120
-            liquidity   uint128 :  0
-            feeGrowthInside0LastX128   uint256 :  61064396503397452110945275557207
-            feeGrowthInside1LastX128   uint256 :  0
-            tokensOwed0   uint128 :  0
-            tokensOwed1   uint128 :  0
-        */
-
-        ( , , , , , , , uint128 liquidity, , , , ) = nonfungiblePositionManager.positions(tokenId);
-        
-        // amount0Min and amount1Min are price slippage checks
-        // if the amount received after burning is not greater than these minimums, transaction will fail
-        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: tokenId,
-                liquidity: liquidity,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp
-            });
-
-        nonfungiblePositionManager.decreaseLiquidity(params);
-    }
-
-    function collectLiquidity(uint256 tokenId) external {
-
-        /*
-            uint256 tokenId;
-            address recipient;
-            uint128 amount0Max;
-            uint128 amount1Max;
-        */
-
-        INonfungiblePositionManager.CollectParams memory params = INonfungiblePositionManager.CollectParams({
-            tokenId: tokenId,
-            recipient: address(this),
-            amount0Max: type(uint128).max,
-            amount1Max: type(uint128).max
-        });
-
-        nonfungiblePositionManager.collect(params);
-    }
 
     function swap1ofToken1(uint256 _deadline) public {
 
@@ -234,8 +181,8 @@ contract USDCLUSD {
     }
 
     function addLiquidity1000weiOfToken0(uint256 _deadline) public {
-        (, int24 tick, , , , , ) = pool.slot0();
-        int24 upperTick =  nearestUsableTick(tick+500, 200);
+        (, int24 tick, , , , , ) = pool.slot0();//  -276000
+        int24 upperTick =  nearestUsableTick(tick+500, 200); //-275600
         if(upperTick>887200) upperTick=887200;
             (
             uint256 tokenId,
@@ -247,9 +194,9 @@ contract USDCLUSD {
                         token0: address(token0),
                         token1: address(token1),
                         fee: 10000, 
-                        tickLower: nearestUsableTick(upperTick-200, 200),  
-                        tickUpper:  upperTick, 
-                        amount0Desired: 1000,
+                        tickLower: nearestUsableTick(upperTick-200, 200),  //-//-275800
+                        tickUpper:  upperTick, ////-275600
+                        amount0Desired: 1 ether,
                         amount1Desired: 0,
                         amount0Min: 0,
                         amount1Min: 0,

